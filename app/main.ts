@@ -1,5 +1,9 @@
 import * as net from 'net';
+import {argv} from "node:process";
 import RedisParser from 'redis-parser';
+
+const PORT = Number(argv[3]) || 6379;
+
 enum CommonResponseCommand {
   Pong = 'PONG',
 }
@@ -50,7 +54,7 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
     connectionParser.execute(data);
   });
 });
-server.listen(6379, '127.0.0.1');
+server.listen(PORT, '127.0.0.1');
 function encodeRedisResponse(command: string) {
   return `+${command}\r\n`;
 }
