@@ -38,6 +38,8 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             `$${value ? value.length + '\r\n' + value : '-1'}\r\n`
           );
           break;
+        case 'info':
+            connection.write(`$11\r\nrole:master\r\n`);
         default:
           connection.write(`-ERR unknown command ${command}\r\n`);
           break;
