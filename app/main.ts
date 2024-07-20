@@ -1,31 +1,56 @@
-import * as net from "net";
+import * as net from 'net';
+import RedisParser from 'redis-parser';
+enum CommonResponseCommand {
+  Pong = 'PONG',
+}
 
-interface StringHashmap {
-    [key: string]: string;
-  }
-let myHashmap: StringHashmap = {};
+// You can use print statements as follows for debugging, they'll be visible when running tests.
+console.log('Logs from your program will appear here!');
 const server: net.Server = net.createServer((connection: net.Socket) => {
-    
-
-    connection.on("data", (data) => {
-        const args = data.toString().split(`\r\n`);
-        const cmd = args[2].toLowerCase();        
-        if (cmd === 'ping') {
-            connection.write('+PONG\r\n');
-        } else if (cmd === 'echo') {
-            const txt = args[4];
-            connection.write(`$${txt.length}\r\n${txt}\r\n`);
-        } else if(cmd === 'set') {
-            const key = args[4];
-            const value = args[6];
-            myHashmap[key] = value;
-            connection.write("+OK\r\n");
-        } else if(cmd === 'get') {
-            const key = args[4];            
-            connection.write(`+${myHashmap[key] || '' }\r\n`);
-        }
-    })
+  const values = new Map();
+  const connectionParser = new RedisParser({
+    returnReply: (reply: string[]) => {
+      console.log('Received command:', JSON.stringify(reply));
+      const [command, ...args] = reply;
+      switch (command.toLowerCase()) {
+        case 'ping':
+          connection.write(encodeRedisResponse(CommonResponseCommand.Pong));
+          break;
+        case 'echo':
+          connection.write(`$${args[0].length}\r\n${args[0]}\r\n`);
+          break;
+        case 'set':
+          values.set(args[0], args[1]);          
+          connection.write('+OK\r\n');
+          if (args[2].toUpperCase() === "PX") {
+            setTimeout(()=> {
+              values.delete(args[0]);
+            }, +args[3])
+          }
+          break;
+        case 'get':
+          const value = values.get(args[0]);
+          connection.write(
+            `$${value ? value.length + '\r\n' + value : '-1'}\r\n`
+          );
+          break;
+        default:
+          connection.write(`-ERR unknown command ${command}\r\n`);
+          break;
+      }
+    },
+    returnError: (error: unknown) => {
+      console.error('Error', error);
+    },
+    returnFatalError: (error: unknown) => {
+      console.error('Fatal Error', error);
+    },
   });
-
-server.listen(6379, "127.0.0.1");
-
+  connection.on('data', async (data: Buffer) => {
+    connectionParser.execute(data);
+  });
+});
+server.listen(6379, '127.0.0.1');
+function encodeRedisResponse(command: string) {
+  return `+${command}\r\n`;
+}

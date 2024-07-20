@@ -6,9 +6,11 @@
     "dev": "bun run app/main.ts"
   },
   "dependencies": {
-    "async": "^3.2.0"
+    "async": "^3.2.0",
+    "redis-parser": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.11"
+    "@types/node": "^20.12.11",
+    "@types/redis-parser": "^3.0.3"
   }
 }
