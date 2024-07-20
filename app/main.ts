@@ -1,8 +1,11 @@
 import * as net from "net";
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
-    // Handle connection
+    connection.on("data", (data) => {
+        console.log("Received:", JSON.stringify(data.toString()));
+        connection.write("+PONG\r\n");
+    })
   });
-  
+
 server.listen(6379, "127.0.0.1");
 
