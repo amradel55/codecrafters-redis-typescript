@@ -2,8 +2,21 @@ import * as net from 'net';
 import {argv} from "node:process";
 import RedisParser from 'redis-parser';
 
-const PORT = Number(argv[3]) || 6379;
-
+let PORT = 6379;
+let role = 'master';
+let master = {
+  port: 0,
+  host: '',
+}
+if (argv[2] && argv[2].includes('port')) {
+  PORT = Number(argv[3])
+}
+if (argv[4] && argv[4].includes('replicaof')) {
+  role = 'slave';
+ let masterInfo = argv[5].split(' ');
+ master.host = masterInfo[0];
+ master.port = +masterInfo[1];
+}
 enum CommonResponseCommand {
   Pong = 'PONG',
 }
@@ -12,6 +25,7 @@ enum CommonResponseCommand {
 console.log('Logs from your program will appear here!');
 const server: net.Server = net.createServer((connection: net.Socket) => {
   const values = new Map();
+
   const connectionParser = new RedisParser({
     returnReply: (reply: string[]) => {
       console.log('Received command:', JSON.stringify(reply));
@@ -39,7 +53,8 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
           );
           break;
         case 'info':
-            connection.write(`$11\r\nrole:master\r\n`);
+            const info = `role:${role}`;
+            connection.write(`$${info.length}\r\n${info}\r\n`);
         default:
           connection.write(`-ERR unknown command ${command}\r\n`);
           break;
